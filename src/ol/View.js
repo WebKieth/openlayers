@@ -1638,22 +1638,25 @@ class View extends BaseObject {
   /**
    * Set the center of the current view. Any extent constraint will apply.
    * @param {import("./coordinate.js").Coordinate|undefined} center The center of the view.
+   * @param {boolean} silent Set without triggering an event
    * @observable
    * @api
    */
-  setCenter(center) {
+  setCenter(center, silent = false) {
     this.setCenterInternal(
-      center ? fromUserCoordinate(center, this.getProjection()) : center
+      center ? fromUserCoordinate(center, this.getProjection()) : center,
+      silent
     );
   }
 
   /**
    * Set the center using the view projection (not the user projection).
    * @param {import("./coordinate.js").Coordinate|undefined} center The center of the view.
+   * @param {boolean} silent Set without triggering an event
    */
-  setCenterInternal(center) {
+  setCenterInternal(center, silent = false) {
     this.targetCenter_ = center;
-    this.applyTargetState_();
+    this.applyTargetState_(false, false, silent);
   }
 
   /**
@@ -1670,32 +1673,35 @@ class View extends BaseObject {
   /**
    * Set the resolution for this view. Any resolution constraint will apply.
    * @param {number|undefined} resolution The resolution of the view.
+   * @param {boolean} silent Set without triggering an event
    * @observable
    * @api
    */
-  setResolution(resolution) {
+  setResolution(resolution, silent = false) {
     this.targetResolution_ = resolution;
-    this.applyTargetState_();
+    this.applyTargetState_(false, false, silent);
   }
 
   /**
    * Set the rotation for this view. Any rotation constraint will apply.
    * @param {number} rotation The rotation of the view in radians.
+   * @param {boolean} silent Set without triggering an event
    * @observable
    * @api
    */
-  setRotation(rotation) {
+  setRotation(rotation, silent = false) {
     this.targetRotation_ = rotation;
-    this.applyTargetState_();
+    this.applyTargetState_(false, false, silent);
   }
 
   /**
    * Zoom to a specific zoom level. Any resolution constrain will apply.
    * @param {number} zoom Zoom level.
+   * @param {boolean} silent Zooming without triggering an event
    * @api
    */
-  setZoom(zoom) {
-    this.setResolution(this.getResolutionForZoom(zoom));
+  setZoom(zoom, silent = false) {
+    this.setResolution(this.getResolutionForZoom(zoom), silent);
   }
 
   /**
@@ -1704,9 +1710,14 @@ class View extends BaseObject {
    * parameters can influence one another in case a view extent constraint is present.
    * @param {boolean} [doNotCancelAnims] Do not cancel animations.
    * @param {boolean} [forceMoving] Apply constraints as if the view is moving.
+   * @param {boolean} [silent] Update without triggering an event
    * @private
    */
-  applyTargetState_(doNotCancelAnims, forceMoving) {
+  applyTargetState_(
+    doNotCancelAnims = false,
+    forceMoving = false,
+    silent = false
+  ) {
     const isMoving =
       this.getAnimating() || this.getInteracting() || forceMoving;
 
@@ -1736,10 +1747,10 @@ class View extends BaseObject {
     );
 
     if (this.get(ViewProperty.ROTATION) !== newRotation) {
-      this.set(ViewProperty.ROTATION, newRotation);
+      this.set(ViewProperty.ROTATION, newRotation, silent);
     }
     if (this.get(ViewProperty.RESOLUTION) !== newResolution) {
-      this.set(ViewProperty.RESOLUTION, newResolution);
+      this.set(ViewProperty.RESOLUTION, newResolution, silent);
       this.set('zoom', this.getZoom(), true);
     }
     if (
@@ -1747,10 +1758,10 @@ class View extends BaseObject {
       !this.get(ViewProperty.CENTER) ||
       !equals(this.get(ViewProperty.CENTER), newCenter)
     ) {
-      this.set(ViewProperty.CENTER, newCenter);
+      this.set(ViewProperty.CENTER, newCenter, silent);
     }
 
-    if (this.getAnimating() && !doNotCancelAnims) {
+    if (this.getAnimating() && doNotCancelAnims === false) {
       this.cancelAnimations();
     }
     this.cancelAnchor_ = undefined;
